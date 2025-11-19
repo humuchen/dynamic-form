@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowJs": true,
+    "checkJs": false,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["packages/*"]
+    }
+  },
+  "include": [
+    "packages/**/*.js",
+    "packages/**/*.vue",
+    "example/**/*.js",
+    "example/**/*.vue"
+  ],
+  "exclude": ["node_modules"]
+}

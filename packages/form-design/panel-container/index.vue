@@ -1,0 +1,197 @@
+<template>
+  <div class="form-panel">
+    <p
+      class="no-data-text"
+      v-if="
+        !formTemplate || !formTemplate.list || formTemplate.list.length === 0
+      "
+      :key="formKey + arrow"
+      :style="{
+        width: 'calc(100% - 260px)'
+      }"
+    >
+      <!-- 从左侧选择组件添加 -->
+      {{ t('dyform.select_item') }}
+    </p>
+    <el-form
+      :label-width="formTemplate.config.labelWidth + 'px'"
+      class="dy-form"
+      :label-position="formTemplate.config.labelPosition"
+      :hide-required-asterisk="formTemplate.config.hideRequiredMark"
+      :label-suffix="formTemplate.config.labelSuffix"
+      ref="form"
+      :style="formTemplate.config.customStyle"
+      :size="formTemplate.config.size"
+    >
+      <el-row class="row">
+        <draggable
+          tag="div"
+          class="draggable-box"
+          v-bind="{
+            group: 'form-draggable',
+            ghostClass: 'moving',
+            animation: 180,
+            handle: '.drag-move'
+          }"
+          v-model="formTemplate.list"
+          @add="dragEnd($event, formTemplate.list)"
+        >
+          <transition-group tag="div" name="list" class="items-main">
+            <Node
+              :class="{
+                'drag-move': record.drag_ == undefined || record.drag_
+              }"
+              v-for="record in formTemplate.list"
+              :key="record.key"
+              :record="record"
+              :isDrag="true"
+              :config="formTemplate.config"
+              :selectItem="selectItem"
+              :cascade="formTemplate.cascade"
+              @handleSelectItem="handleSelectItem"
+              @handleCopy="handleCopy(record)"
+              @handleDetele="handleDetele(record)"
+            >
+            </Node>
+          </transition-group>
+        </draggable>
+      </el-row>
+    </el-form>
+  </div>
+</template>
+<script>
+import cloneDeep from 'lodash/cloneDeep';
+import { cloneDeepAndFormat } from '../../utils/index.js';
+import draggable from 'vuedraggable';
+import Node from './node';
+import LocalMixin from '../../locale/mixin.js';
+import { t } from '../../locale/index.js';
+export default {
+  name: 'dy-form-container',
+  mixins: [LocalMixin],
+  components: {
+    Node,
+    draggable
+  },
+  data() {
+    return {
+      formKey: '111'
+    };
+  },
+  props: {
+    formTemplate: {
+      type: Object,
+      required: true
+    },
+    selectItem: {
+      type: Object
+    },
+    arrow: {
+      type: Boolean,
+      default: false
+    }
+  },
+  mounted() {
+    this.$dyform_bus.$on('i18nRefresh', () => {
+      this.formKey = new Date().getTime();
+    });
+  },
+  methods: {
+    dragEnd(evt, list) {
+      //console.log('111' , evt)
+      // 复制一遍
+      const clone = cloneDeepAndFormat(list[evt.newIndex], evt);
+      this.$set(list, evt.newIndex, clone);
+      // 拖拽结束,自动选择拖拽的控件项
+      //console.log('111' , cloneDeep(list[evt.newIndex]))
+      this.handleSelectItem(list[evt.newIndex]);
+    },
+    handleSelectItem(record) {
+      this.$emit('handleSelectItem', record);
+    },
+    handleCopy(item) {
+      const nitem = cloneDeepAndFormat(item);
+      const key = item.type + '_' + new Date().getTime();
+      nitem.key = key;
+      nitem.model = key;
+
+      // 找到index 插入
+      const oindex = this.formTemplate.list.findIndex((t) => t.key == item.key);
+
+      if (oindex >= 0) {
+        // insert
+        this.formTemplate.list.splice(oindex + 1, 0, nitem);
+      }
+    },
+    handleDetele(item) {
+      const oindex = this.formTemplate.list.findIndex((t) => t.key == item.key);
+
+      if (oindex >= 0) {
+        this.formTemplate.list.splice(oindex, 1);
+
+        // 当前selectItem重置
+        this.handleSelectItem(undefined);
+      }
+    }
+  }
+};
+</script>
+<style>
+.form-panel {
+  height: 100%;
+  min-height: 800px;
+}
+
+.form-panel .no-data-text {
+  text-align: center;
+
+  height: 50px;
+  width: calc(100% - 370px - 260px);
+  position: absolute;
+  top: 40%;
+  left: 4%;
+  z-index: 999;
+
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.form-panel .row {
+  height: 100%;
+  min-height: inherit;
+  /*display: flex;
+  flex-wrap: wrap;*/
+}
+
+.form-panel .dy-form {
+  height: 100%;
+  min-height: inherit;
+}
+
+.form-panel .dy-form .draggable-box {
+  height: 100%;
+  overflow: auto;
+  width: 100%;
+  background: #f2f4f9;
+  position: relative;
+}
+
+.items-main {
+  min-height: calc(100% - 25px);
+  padding: 10px;
+  width: calc(100% - 170px);
+  background: #fff;
+  position: absolute;
+  left: 70px;
+}
+
+.dy-form .el-row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+ul,
+li {
+  list-style: none;
+}
+</style>
